@@ -10,9 +10,12 @@
 
 #define tam_alfabeto 26  // Limite de A-Z
 
+//buffer e tamanho dele
 char *buffer;
 int tam_buffer;
+//comeca apontando na posicao 0
 int pos_buffer = 0;
+
 int exec_count[tam_alfabeto];
 pthread_mutex_t mutex;
 
@@ -45,7 +48,9 @@ void* thread_func(void* arg) {
     return NULL;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {  
+    
+    // $ ./thread_runner <numero_de_threads> <tamanho_do_buffer_global_em_kb> <politica> <prioridade>
     if (argc != 5) {
         fprintf(stderr, "Uso: %s <num_threads> <tam_buffer> <politica> <prioridade>\n", argv[0]);
         return 1;
@@ -59,7 +64,7 @@ int main(int argc, char *argv[]) {
 
     //se passar o limite de threads
     if (num_threads > tam_alfabeto) {
-        fprintf(stderr, "Máximo de %d threads suportado.\n", tam_alfabeto);
+        fprintf(stderr, "Máximo de %d threads suportado. Tente novamente\n", tam_alfabeto);
         return 1;
     }
 
@@ -75,19 +80,19 @@ int main(int argc, char *argv[]) {
     //cria o mutex
     pthread_mutex_init(&mutex, NULL);
 
-    //cria os vetores de threads
+    //cria os vetores de threads no tamanho maximo possivel
     pthread_t threads[tam_alfabeto];
     ThreadArg args[tam_alfabeto];
 
     //escolher a politica de acorda com a entrada
-    int policy;
-    if (strcmp(politica_str, "SCHED_FIFO") == 0) policy = SCHED_FIFO;
-    else if (strcmp(politica_str, "SCHED_RR") == 0) policy = SCHED_RR;
-    else if (strcmp(politica_str, "SCHED_OTHER") == 0) policy = SCHED_OTHER;
-    else if (strcmp(politica_str, "SCHED_BATCH") == 0) policy = SCHED_BATCH;
-    else if (strcmp(politica_str, "SCHED_IDLE") == 0) policy = SCHED_IDLE;
+    int politica;
+    if (strcmp(politica_str, "SCHED_FIFO") == 0) politica = SCHED_FIFO;
+    else if (strcmp(politica_str, "SCHED_RR") == 0) politica = SCHED_RR;
+    else if (strcmp(politica_str, "SCHED_OTHER") == 0) politica = SCHED_OTHER;
+    else if (strcmp(politica_str, "SCHED_BATCH") == 0) politica = SCHED_BATCH;
+    else if (strcmp(politica_str, "SCHED_IDLE") == 0) politica = SCHED_IDLE;
     else {
-        fprintf(stderr, "Política desconhecida.\n");
+        fprintf(stderr, "Política desconhecida.Tente novamente.\n");
         return 1;
     }
 
@@ -98,24 +103,33 @@ int main(int argc, char *argv[]) {
         args[i].id = i;
         args[i].symbol = 'A' + i;
 
+        //inicia a thread
         pthread_attr_t attr;
         pthread_attr_init(&attr);
 
         struct sched_param param;
         param.sched_priority = prioridade;
 
-        pthread_attr_setschedpolicy(&attr, policy);
+        //atribui a politica escolhida
+        pthread_attr_setschedpolicy(&attr, politica);
+
+        //salva a prioridade
         pthread_attr_setschedparam(&attr, &param);
+
+        //faz com que force a utilizacao da politica independente do pai
         pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
         
+        //caso de erro
         if (pthread_create(&threads[i], &attr, thread_func, &args[i]) != 0) {
-            perror("Erro ao criar thread");
+            perror("Erro ao criar thread.Tente novamente.");
             return 1;
         }
 
+        //libera os recursos pra criacao da thread
         pthread_attr_destroy(&attr);
     }
 
+    // comeca todas elas
     for (int i = 0; i < num_threads; i++) {
         pthread_join(threads[i], NULL);
     }

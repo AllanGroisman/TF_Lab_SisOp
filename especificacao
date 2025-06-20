@@ -1,7 +1,6 @@
 
 # parametros:
-$ ./thread_runner <numero_de_threads> <tamanho_do_buffer_global_em_kb>
-<politica> <prioridade>
+$ ./thread_runner <numero_de_threads> <tamanho_do_buffer_global_em_kb> <politica> <prioridade>
 
 
 
