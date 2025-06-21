@@ -1,0 +1,46 @@
+# ================================================
+# SCHED_OTHER (Padrão do Linux - CFS)
+# ================================================
+# ➤ Política padrão do Linux (Completely Fair Scheduler).
+# ➤ Tenta repartir o tempo de CPU de forma justa entre todas as threads.
+# ➤ ✅ Esperado: distribuição relativamente equilibrada entre as letras (A-Z),
+#     mas a ordem pode ser não uniforme (threads escrevem em blocos curtos).
+./thread_runner 10 3 SCHED_OTHER 0
+
+# ================================================
+# SCHED_BATCH (Tarefas em Lote)
+# ================================================
+# ➤ Voltado para tarefas em segundo plano, como processamento em lote.
+# ➤ Menos prioridade para rodar logo; pode ser preterido se o sistema estiver ocupado.
+# ➤ ✅ Esperado: algumas threads dominam mais que outras;
+#     distribuição desequilibrada em cenários com carga de CPU.
+./thread_runner 26 3 SCHED_BATCH 0
+
+# ================================================
+# SCHED_IDLE (Ocioso)
+# ================================================
+# ➤ Executa somente quando **nenhum outro processo precisa da CPU**.
+# ➤ Tem a menor prioridade do sistema.
+# ➤ ✅ Esperado: se o sistema estiver ocupado, threads escrevem **muito pouco** ou quase nada.
+#     A saída pode mostrar poucas letras ou repetições de poucas threads.
+./thread_runner 26 3 SCHED_IDLE 0
+
+# ================================================
+# SCHED_FIFO (Tempo Real - Fila Fixa)
+# ================================================
+# ➤ Threads executam até bloquearem voluntariamente (ex: no delay ou no semáforo).
+# ➤ Não há preempção entre threads com a mesma prioridade.
+# ➤ ✅ Esperado: as **primeiras threads criadas** (ex: A, B, C...) podem dominar o buffer.
+#     Letras mais ao final do alfabeto podem nem aparecer.
+# ➤ ⚠️ Requer privilégios de root.
+sudo ./thread_runner 26 3 SCHED_FIFO 50
+
+# ================================================
+# SCHED_RR (Tempo Real - Round Robin)
+# ================================================
+# ➤ Mesmo comportamento do FIFO, mas com rodízio obrigatório entre threads.
+# ➤ Cada thread recebe um quantum de tempo antes de ser preemptada.
+# ➤ ✅ Esperado: distribuição **mais equilibrada** entre as letras do que no FIFO,
+#     com mais alternância entre blocos curtos de letras.
+# ➤ ⚠️ Requer privilégios de root.
+sudo ./thread_runner 26 3 SCHED_RR 50

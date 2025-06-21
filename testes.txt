@@ -1,0 +1,10 @@
+
+./thread_runner 26 10 SCHED_OTHER 0
+
+./thread_runner 26 10 SCHED_BATCH 0
+
+./thread_runner 26 10 SCHED_IDLE 0
+
+sudo ./thread_runner 26 10 SCHED_FIFO 80
+
+sudo ./thread_runner 26 10 SCHED_RR 80

@@ -7,9 +7,9 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/time.h>
-#include <semaphore.h>  // necessário para sem_t
+#include <semaphore.h> // necessário para sem_t
 
-#define tam_alfabeto 26  // Limite de A-Z
+#define tam_alfabeto 26 // Limite de A-Z
 
 // buffer e tamanho dele
 char *buffer;
@@ -21,7 +21,8 @@ int exec_count[tam_alfabeto];
 // semáforo binário para controlar acesso ao buffer
 sem_t semaforo;
 
-typedef struct {
+typedef struct
+{
     int id;
     char symbol;
 } ThreadArg;
@@ -37,28 +38,32 @@ void delay_us(unsigned long delay)
     timel1 = time1.tv_sec * 1000000LL;
     timel1 += time1.tv_usec;
 
-    do {
+    do
+    {
         gettimeofday(&time2, 0);
         timel2 = time2.tv_sec * 1000000LL;
         timel2 += time2.tv_usec;
     } while (timel2 - timel1 < delay);
 }
 
-void* thread_func(void* arg) {
-    ThreadArg *targ = (ThreadArg*) arg;
+void *thread_func(void *arg)
+{
+    ThreadArg *targ = (ThreadArg *)arg;
 
-    while (1) {
-        // delay de 1ms
-        delay_us(1000);
+    while (1)
+    {
+        // delay ms
+        delay_us(300);
 
         // entra na seção crítica usando o semáforo
         sem_wait(&semaforo);
-        //verifica se acabou o buffer
-        if (pos_buffer >= tam_buffer) {
+        // verifica se acabou o buffer
+        if (pos_buffer >= tam_buffer)
+        {
             sem_post(&semaforo);
             break;
         }
-        //senao grava a letra correspondente no buffer, atualiza a posicao do ponteiro e aumenta o contador daquela letra 
+        // senao grava a letra correspondente no buffer, atualiza a posicao do ponteiro e aumenta o contador daquela letra
         buffer[pos_buffer++] = targ->symbol;
         exec_count[targ->id]++;
         // libera a seção crítica
@@ -68,10 +73,12 @@ void* thread_func(void* arg) {
     return NULL;
 }
 
-int main(int argc, char *argv[]) {  
-    
+int main(int argc, char *argv[])
+{
+
     // $ ./thread_runner <numero_de_threads> <tamanho_do_buffer_global_em_kb> <politica> <prioridade>
-    if (argc != 5) {
+    if (argc != 5)
+    {
         fprintf(stderr, "Uso: %s <num_threads> <tam_buffer> <politica> <prioridade>\n", argv[0]);
         return 1;
     }
@@ -83,19 +90,28 @@ int main(int argc, char *argv[]) {
     int prioridade = atoi(argv[4]);
 
     // se passar o limite de threads
-    if (num_threads > tam_alfabeto) {
+    if (num_threads > tam_alfabeto)
+    {
         fprintf(stderr, "Máximo de %d threads suportado. Tente novamente\n", tam_alfabeto);
         return 1;
     }
 
-    // tam do buffer em bytes 
+    // tam do buffer em bytes
     tam_buffer = tam_buffer_arg * 1024;
     // aloca o buffer
     buffer = malloc(tam_buffer);
-    if (!buffer) {
+    if (!buffer)
+    {
         perror("Erro ao alocar buffer");
         return 1;
     }
+
+    printf("\n-------- Inicio do Programa --------\n\n");
+
+    struct timeval inicio, fim;
+
+    // pega o inciio do programa
+    gettimeofday(&inicio, NULL);
 
     // inicializa o semáforo binário (1 = recurso livre)
     sem_init(&semaforo, 0, 1);
@@ -106,19 +122,26 @@ int main(int argc, char *argv[]) {
 
     // escolher a política de acordo com a entrada
     int politica;
-    if (strcmp(politica_str, "SCHED_FIFO") == 0) politica = SCHED_FIFO;
-    else if (strcmp(politica_str, "SCHED_RR") == 0) politica = SCHED_RR;
-    else if (strcmp(politica_str, "SCHED_OTHER") == 0) politica = SCHED_OTHER;
-    else if (strcmp(politica_str, "SCHED_BATCH") == 0) politica = SCHED_BATCH;
-    else if (strcmp(politica_str, "SCHED_IDLE") == 0) politica = SCHED_IDLE;
-    else {
+    if (strcmp(politica_str, "SCHED_FIFO") == 0)
+        politica = SCHED_FIFO;
+    else if (strcmp(politica_str, "SCHED_RR") == 0)
+        politica = SCHED_RR;
+    else if (strcmp(politica_str, "SCHED_OTHER") == 0)
+        politica = SCHED_OTHER;
+    else if (strcmp(politica_str, "SCHED_BATCH") == 0)
+        politica = SCHED_BATCH;
+    else if (strcmp(politica_str, "SCHED_IDLE") == 0)
+        politica = SCHED_IDLE;
+    else
+    {
         fprintf(stderr, "Política desconhecida. Tente novamente.\n");
         return 1;
     }
 
     // pra cada thread
-    for (int i = 0; i < num_threads; i++) {
-        
+    for (int i = 0; i < num_threads; i++)
+    {
+
         // endereça qual é o id e o caractere dele
         args[i].id = i;
         args[i].symbol = 'A' + i;
@@ -138,9 +161,10 @@ int main(int argc, char *argv[]) {
 
         // faz com que force a utilização da política independente do pai
         pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
-        
+
         // caso de erro
-        if (pthread_create(&threads[i], &attr, thread_func, &args[i]) != 0) {
+        if (pthread_create(&threads[i], &attr, thread_func, &args[i]) != 0)
+        {
             perror("Erro ao criar thread. Tente novamente.");
             return 1;
         }
@@ -150,27 +174,43 @@ int main(int argc, char *argv[]) {
     }
 
     // espera todas elas terminarem
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 0; i < num_threads; i++)
+    {
         pthread_join(threads[i], NULL);
     }
+
+    // pega o fim do programa
+    gettimeofday(&fim, NULL);
+
+    // Calcula o tempo total em segundos (com fração)
+    long segundos = fim.tv_sec - inicio.tv_sec;
+    long microssegundos = fim.tv_usec - inicio.tv_usec;
+    double tempo_total_s = segundos + microssegundos / 1000000.0;
 
     // imprime o buffer resultante
     fwrite(buffer, 1, tam_buffer, stdout);
     printf("\n\n");
 
-
     // imprime as letras utilizadas
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 0; i < num_threads; i++)
+    {
         printf("%c", 'A' + i);
     }
     printf("\n");
 
     // imprime quantas vezes cada thread escreveu
-    for (int i = 0; i < num_threads; i++) {
+    for (int i = 0; i < num_threads; i++)
+    {
         printf("%c = %d\n", 'A' + i, exec_count[i]);
     }
 
-    //libera o buffer
+    // printa o tempo de execucao
+    printf("\nTempo total de execução: %.2f segundos\n", tempo_total_s);
+    printf("Política: %s\n", politica_str);
+    printf("Política ID: %d\n", politica);
+
+
+    // libera o buffer
     free(buffer);
 
     // destrói o semáforo
